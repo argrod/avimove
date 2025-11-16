@@ -1,7 +1,8 @@
-import avimove.forage_detect.src.utils.analyseAcc as accFn
-import avimove.forage_detect.src.utils.analyseGPS as gpsFn
-import avimove.forage_detect.src.utils.DVLutils as dvlFn
-import avimove.forage_detect.src.utils.loadIn as load
+import avimove.forage_detect.utils.analyseAcc as accFn
+import avimove.forage_detect.utils.analyseGPS as gpsFn
+import avimove.forage_detect.utils.DVLutils as dvlFn
+import avimove.forage_detect.utils.loadIn as load
+
 import matplotlib.pyplot as plt
 import distinctipy
 import numpy as np
