@@ -1,4 +1,4 @@
-from .main_func import (
+from .main_fun import (
     readAxy,
     readDVL,
     readBIP,
