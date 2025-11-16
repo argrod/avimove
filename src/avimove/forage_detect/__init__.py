@@ -1,5 +1,3 @@
-from .birdTag import birdTag
-from .dvl import DVL
 from .main_func import readAxy,
     readDVL,
     readBIP,
