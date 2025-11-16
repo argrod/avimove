@@ -612,7 +612,11 @@ class bird_tag:
 
         plt.show()
 
-    def test_det_beh_agreement(self, only_forage: bool = False):
+    def test_det_beh_agreement(
+        self,
+        only_forage: bool = False,
+        plot_confusion_matrix: bool = False,
+        ):
         # convert all foraging into 'Forage' and all flight into 'FL'
         self.upsampled_beh["beh_simple"] = self.upsampled_beh.Behaviour
         # simplify foraging
