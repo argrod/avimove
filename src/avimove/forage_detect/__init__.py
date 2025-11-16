@@ -6,7 +6,6 @@ from .main_func import (
     dtFormat,
     gps_speed,
     distSpeed,
-    main_func,
     removeNearCS,
     lowEquiFilt,
     accFeatures,
