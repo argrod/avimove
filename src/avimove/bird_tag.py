@@ -636,14 +636,14 @@ class bird_tag:
         not_AT = np.where(self.upsampled_beh.beh_simple != "AT")[0]
 
         true_positive_forage_sample_rate = sum(
-            (self.EthBeh.iloc[not_AT] == "Forage")
+            (self.EthBeh[not_AT] == "Forage")
             * (self.upsampled_beh.beh_simple.iloc[not_AT] == "Forage")
-        ) / sum((self.EthBeh.iloc[not_AT] == "Forage")).item()
+        ) / sum((self.EthBeh[not_AT] == "Forage")).item()
 
         false_positive_forage_sample_rate = sum(
-            (self.EthBeh.iloc[not_AT] == "Forage")
+            (self.EthBeh[not_AT] == "Forage")
             * (self.upsampled_beh.beh_simple.iloc[not_AT] != "Forage")
-        ) / sum((self.EthBeh.iloc[not_AT] == "Forage")).item()
+        ) / sum((self.EthBeh[not_AT] == "Forage")).item()
 
         # how many predicted forages have known foraging in them
         pred_chg_idx, pred_chg_str = self.get_changes_in_string_list(
