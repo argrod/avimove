@@ -19,8 +19,7 @@ from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
 from itertools import compress
 
-
-class birdTag:
+class bird_tag:
     """
     Class for avian biologging tags. Current support includes AxyTrek and DVL
     with a look toward incorporating NinjaScan data. Requires file path(s) and
@@ -293,7 +292,12 @@ class birdTag:
             self.acc.ODmn, self.flInds, findVal="min"
         )
 
-    def beh_detect(self, toEx: Union[float, None]) -> None:
+    def beh_detect(
+        self,
+        toEx: Union[float, None],
+        dive_down_limit: float = 30.0,
+        forage_grouping_time: float = 23.3,
+        ) -> None:
         """ """
         if not hasattr(self, "pitFL"):
             print("Pre-requesite calculations not performed\nRunning now...")
@@ -319,7 +323,7 @@ class birdTag:
         DiveUp = median([np.mean(self.acc.pitch[x]) for x in self.flInds]) + 2 * median(
             [np.var(self.acc.pitch[x]) for x in self.flInds]
         )
-        DiveDown = median([np.min(self.acc.pitch[x]) for x in self.flInds]) - 30
+        DiveDown = median([np.min(self.acc.pitch[x]) for x in self.flInds]) - dive_down_limit
         self.EthBeh[np.where(self.flap_bouts == 1)] = "FL"
         # find pitch changes
         pitpeaks, pittroughs, _ = accFn.peak_trough(self.acc.pitch)
@@ -347,9 +351,9 @@ class birdTag:
         #             self.EthBeh[TkoStart:TkoEnd] = ['Takeoff'] * (TkoEnd-TkoStart)
 
         # identify foraging
-        Pitdif = np.where(np.diff(PitLarge) > (23.3 * self.accfs))[0]
+        Pitdif = np.where(np.diff(PitLarge) > (forage_grouping_time * self.accfs))[0]
         PitOutSd = np.zeros(len(self.acc.pitch), dtype=int).tolist()
-        # combine all foraging within 23.3 seconds
+        # combine all foraging within 'forage_grouping_time' seconds
         for b in range(len(Pitdif) - 1):
             if b == 0:
                 if PitLarge[Pitdif[b]] - PitLarge[0] > self.accfs * 1.5:
@@ -630,53 +634,16 @@ class birdTag:
 
         not_AT = np.where(self.upsampled_beh.beh_simple != "AT")[0]
 
-        true_positive_forage_sample_rate = (
-            sum(
-                (self.EthBeh[not_AT] == "Forage")
-                * (self.upsampled_beh.beh_simple[not_AT] == "Forage")
-            )
-            / sum((self.EthBeh[not_AT] == "Forage")).item()
-        )
+        true_positive_forage_sample_rate = sum(
+            (self.EthBeh.iloc[not_AT] == "Forage")
+            * (self.upsampled_beh.beh_simple.iloc[not_AT] == "Forage")
+        ) / sum((self.EthBeh.iloc[not_AT] == "Forage")).item()
 
-        false_positive_forage_sample_rate = (
-            sum(
-                (self.EthBeh[not_AT] == "Forage")
-                * (self.upsampled_beh.beh_simple[not_AT] != "Forage")
-            )
-            / sum((self.EthBeh[not_AT] == "Forage")).item()
-        )
-        
-        true_negative_forage_sample_rate = (
-            sum(
-                (self.EthBeh[not_AT] != "Forage")
-                * (self.upsampled_beh.beh_simple[not_AT] != "Forage")
-            )
-            / sum((self.EthBeh[not_AT] != "Forage")).item()
-        )
+        false_positive_forage_sample_rate = sum(
+            (self.EthBeh.iloc[not_AT] == "Forage")
+            * (self.upsampled_beh.beh_simple.iloc[not_AT] != "Forage")
+        ) / sum((self.EthBeh.iloc[not_AT] == "Forage")).item()
 
-        false_negative_forage_sample_rate = (
-            sum(
-                (self.EthBeh[not_AT] != "Forage")
-                * (self.upsampled_beh.beh_simple[not_AT] == "Forage")
-            )
-            / sum((self.EthBeh[not_AT] != "Forage")).item()
-        )
-
-        if plot_confusion_matrix:
-            fig, ax = plt.subplots(figsize=(8,6))
-            ax.matshow(
-                [
-                    [
-                        true_positive_forage_sample_rate,
-                        false_positive_forage_sample_rate,
-                    ],
-                    {
-                        true_negative_forage_sample_rate,
-                        false_negative_forage_sample_rate,
-                    }
-                ],
-                cmap = "greys",
-            )
         # how many predicted forages have known foraging in them
         pred_chg_idx, pred_chg_str = self.get_changes_in_string_list(
             self.upsampled_beh.beh_simple
