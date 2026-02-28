@@ -1,7 +1,8 @@
-import avimove.forage_detect.src.utils.analyseAcc as accFn
-import avimove.forage_detect.src.utils.analyseGPS as gpsFn
-import avimove.forage_detect.src.utils.DVLutils as dvlFn
-import avimove.forage_detect.src.utils.loadIn as load
+import avimove.forage_detect.utils.analyseAcc as accFn
+import avimove.forage_detect.utils.analyseGPS as gpsFn
+import avimove.forage_detect.utils.DVLutils as dvlFn
+import avimove.forage_detect.utils.loadIn as load
+
 import matplotlib.pyplot as plt
 import distinctipy
 import numpy as np
@@ -19,8 +20,7 @@ from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
 from itertools import compress
 
-
-class birdTag:
+class bird_tag:
     """
     Class for avian biologging tags. Current support includes AxyTrek and DVL
     with a look toward incorporating NinjaScan data. Requires file path(s) and
@@ -140,7 +140,7 @@ class birdTag:
             obj += dt.timedelta(seconds=1)
         return obj.replace(microsecond=0)
 
-    def create_regularised_behaviours(self):
+    def gen_reg_sampled_behaviours(self):
         """
         Create a regularly sampled time series of video-recorded behaviours. Simply
         assign the last behaviour before the second ends.
@@ -169,7 +169,7 @@ class birdTag:
                 {"time": reg_date_range, "beh": reg_beh}
             )
 
-            self.regularised_behaviour = regularised_behaviour
+            self.reg_sampled_behaviours = regularised_behaviour
 
     def upsample_behaviours(self, behaviours_duration: int = 2) -> None:
         """
@@ -293,7 +293,14 @@ class birdTag:
             self.acc.ODmn, self.flInds, findVal="min"
         )
 
-    def beh_detect(self, toEx: Union[float, None]) -> None:
+    def beh_detect(
+        self,
+        toEx: Union[float, None],
+        min_mean_ODBA: float = 0.2,
+        scale_med_flight_pitch: float = 2.0,
+        dive_pitch_offset: float = 30.0,
+        forage_grouping_time: float = 23.3,
+    ) -> None:
         """ """
         if not hasattr(self, "pitFL"):
             print("Pre-requesite calculations not performed\nRunning now...")
@@ -315,11 +322,11 @@ class birdTag:
 
         # define an empty ethogram
         self.EthBeh = np.array(["Unknown" for _ in range(len(self.acc))])
-        self.EthBeh[np.where(self.acc.ODmn < 0.2)] = "Rest"
-        DiveUp = median([np.mean(self.acc.pitch[x]) for x in self.flInds]) + 2 * median(
+        self.EthBeh[np.where(self.acc.ODmn < min_mean_ODBA)] = "Rest"
+        DiveUp = median([np.mean(self.acc.pitch[x]) for x in self.flInds]) + scale_med_flight_pitch * median(
             [np.var(self.acc.pitch[x]) for x in self.flInds]
         )
-        DiveDown = median([np.min(self.acc.pitch[x]) for x in self.flInds]) - 30
+        DiveDown = median([np.min(self.acc.pitch[x]) for x in self.flInds]) - dive_pitch_offset
         self.EthBeh[np.where(self.flap_bouts == 1)] = "FL"
         # find pitch changes
         pitpeaks, pittroughs, _ = accFn.peak_trough(self.acc.pitch)
@@ -347,9 +354,9 @@ class birdTag:
         #             self.EthBeh[TkoStart:TkoEnd] = ['Takeoff'] * (TkoEnd-TkoStart)
 
         # identify foraging
-        Pitdif = np.where(np.diff(PitLarge) > (23.3 * self.accfs))[0]
+        Pitdif = np.where(np.diff(PitLarge) > (forage_grouping_time * self.accfs))[0]
         PitOutSd = np.zeros(len(self.acc.pitch), dtype=int).tolist()
-        # combine all foraging within 23.3 seconds
+        # combine all foraging within 'forage_grouping_time' seconds
         for b in range(len(Pitdif) - 1):
             if b == 0:
                 if PitLarge[Pitdif[b]] - PitLarge[0] > self.accfs * 1.5:
@@ -608,7 +615,11 @@ class birdTag:
 
         plt.show()
 
-    def test_det_beh_agreement(self, only_forage: bool = False):
+    def test_det_beh_agreement(
+        self,
+        only_forage: bool = False,
+        plot_confusion_matrix: bool = False,
+        ):
         # convert all foraging into 'Forage' and all flight into 'FL'
         self.upsampled_beh["beh_simple"] = self.upsampled_beh.Behaviour
         # simplify foraging
@@ -628,12 +639,12 @@ class birdTag:
 
         true_positive_forage_sample_rate = sum(
             (self.EthBeh[not_AT] == "Forage")
-            * (self.upsampled_beh.beh_simple[not_AT] == "Forage")
+            * (self.upsampled_beh.beh_simple.iloc[not_AT] == "Forage")
         ) / sum((self.EthBeh[not_AT] == "Forage")).item()
 
         false_positive_forage_sample_rate = sum(
             (self.EthBeh[not_AT] == "Forage")
-            * (self.upsampled_beh.beh_simple[not_AT] != "Forage")
+            * (self.upsampled_beh.beh_simple.iloc[not_AT] != "Forage")
         ) / sum((self.EthBeh[not_AT] == "Forage")).item()
 
         # how many predicted forages have known foraging in them
