@@ -140,7 +140,7 @@ class birdTag:
             obj += dt.timedelta(seconds=1)
         return obj.replace(microsecond=0)
 
-    def create_regularised_behaviours(self):
+    def gen_reg_sampled_behaviours(self):
         """
         Create a regularly sampled time series of video-recorded behaviours. Simply
         assign the last behaviour before the second ends.
@@ -169,7 +169,7 @@ class birdTag:
                 {"time": reg_date_range, "beh": reg_beh}
             )
 
-            self.regularised_behaviour = regularised_behaviour
+            self.reg_sampled_behaviours = regularised_behaviour
 
     def upsample_behaviours(self, behaviours_duration: int = 2) -> None:
         """
@@ -293,7 +293,13 @@ class birdTag:
             self.acc.ODmn, self.flInds, findVal="min"
         )
 
-    def beh_detect(self, toEx: Union[float, None]) -> None:
+    def beh_detect(
+        self,
+        toEx: Union[float, None],
+        min_mean_ODBA: float = 0.2,
+        scale_med_flight_pitch: float = 2.0,
+        dive_pitch_offset: float = 30.0,
+    ) -> None:
         """ """
         if not hasattr(self, "pitFL"):
             print("Pre-requesite calculations not performed\nRunning now...")
@@ -315,11 +321,11 @@ class birdTag:
 
         # define an empty ethogram
         self.EthBeh = np.array(["Unknown" for _ in range(len(self.acc))])
-        self.EthBeh[np.where(self.acc.ODmn < 0.2)] = "Rest"
-        DiveUp = median([np.mean(self.acc.pitch[x]) for x in self.flInds]) + 2 * median(
+        self.EthBeh[np.where(self.acc.ODmn < min_mean_ODBA)] = "Rest"
+        DiveUp = median([np.mean(self.acc.pitch[x]) for x in self.flInds]) + scale_med_flight_pitch * median(
             [np.var(self.acc.pitch[x]) for x in self.flInds]
         )
-        DiveDown = median([np.min(self.acc.pitch[x]) for x in self.flInds]) - 30
+        DiveDown = median([np.min(self.acc.pitch[x]) for x in self.flInds]) - dive_pitch_offset
         self.EthBeh[np.where(self.flap_bouts == 1)] = "FL"
         # find pitch changes
         pitpeaks, pittroughs, _ = accFn.peak_trough(self.acc.pitch)
