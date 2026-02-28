@@ -20,7 +20,7 @@ from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
 from itertools import compress
 
-class bird_tag:
+class BirdTag:
     """
     Class for avian biologging tags. Current support includes AxyTrek and DVL
     with a look toward incorporating NinjaScan data. Requires file path(s) and
