@@ -540,7 +540,24 @@ class BirdTag:
         """
         return Line2D([0, 1], [0, 1], color=color, **kwargs)
 
-    def plot_acc_behaviours(self, acc_sig, cols=None, plot_vid_forage: bool = True):
+    def plot_acc_behaviours(
+        self,
+        acc_sig: str,
+        cols: list[str] = None,
+        plot_vid_forage: bool = True,
+        add_legend: bool = True,
+    ):
+        """Plot predicted behaviours.
+        
+        Parameters
+        ----------
+        acc_sig : str
+            Name of acceleration signal.
+        cols : list[str], Optional
+            List of colours to assign to 
+        plot_vid_forage : bool, Optional
+        add_legend : bool, Optional
+        """
 
         # check for simplified upsampled behaviours and generate if not present
         if (not hasattr(self,'upsampled_beh')) and (self.tag_type == 'dvl'):
@@ -555,7 +572,8 @@ class BirdTag:
             cols = distinctipy.get_colors(n_cats)
         if len(cols) != n_cats:
             raise ValueError(
-                f"Number of provided colours ({len(cols)}) does not match the number of detected behaviours ({len(cats)})"
+                f"Number of provided colours ({len(cols)}) does not match "
+                f"number of detected behaviours ({len(cats)})"
             )
         # generate behaviour-based line collections
         inds, arcs, behavs = self.get_lines_from_string_list(
@@ -605,15 +623,18 @@ class BirdTag:
             )
             legend_obj = Line2D([], [], color="r", marker="*", linestyle="None")
             proxies.append(legend_obj)
-            sorted_behaviours = sorted_behaviours + ["Video foraging", "AT"]
-        leg = ax.legend(proxies, sorted_behaviours)
+            sorted_behaviours = sorted_behaviours + ["Video foraging", "Video AT"]
+        leg = ax.legend(
+            proxies, sorted_behaviours, title='Predicted behaviours',
+            loc='lower center', ncols=len(proxies),
+        )
         # increase the width of the legend lines for legelibility
         for line in leg.get_lines():
             line.set_linewidth(4.0)
         ax.set_ylabel(acc_sig)
         ax.title.set_text(f"{self.tagname} estimated behaviours")
 
-        plt.show()
+        return fig
 
     def test_det_beh_agreement(
         self,
